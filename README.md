@@ -1,6 +1,6 @@
 # Lussino
 
-A lightweight and simple container vulnerability management platform that helps organizations monitor and secure their containerized applications using **Grype**.
+A lightweight and simple container vulnerability scanning platform that helps organizations monitor and secure their containerized applications using **Grype**.
 
 ## Key Highlights
 
@@ -19,12 +19,67 @@ A lightweight and simple container vulnerability management platform that helps 
 
 ## Deployment
 
-### Option 1: Single Docker Container (Recommended)
+### Option 1: Build from Source
 ```bash
-docker run -d -p 3000:3000 tiovane/lussino:latest
+# Build the Docker image
+docker build -t lussino:latest .
+
+# Create data directory for persistence
+mkdir -p ./lussino-data
+
+# Run with data volume mounted
+docker run -d \
+  -p 3000:3000 \
+  -v ./lussino-data:/app/data \
+  --name lussino \
+  lussino:latest
 ```
 
-### Option 2: Development Setup
+### Option 2: Single Docker Container 
+```bash
+# Create data directory for persistence
+mkdir -p ./lussino-data
+
+# Run with data volume mounted
+docker run -d \
+  -p 3000:3000 \
+  -v ./lussino-data:/app/data \
+  --name lussino \
+  tiovane/lussino:latest
+```
+
+### Option 3: Docker Compose (Production Ready)
+Create a `docker-compose.yml` file:
+
+```yaml
+services:
+  lussino:
+    image: tiovane/lussino:latest
+    container_name: lussino
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./data:/app/data
+    environment:
+      - NODE_ENV=production
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/healthz"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+volumes:
+  data:
+    driver: local
+```
+
+Deploy with:
+```bash
+docker-compose up -d
+```
+
+### Option 4: Development Setup
 ```bash
 # Server
 cd server && bun install && bun run dev

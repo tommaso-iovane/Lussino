@@ -3,6 +3,7 @@
   "type": "module",
   "scripts": {
     "dev": "bun run --hot src/index.js",
+    "start": "bun run src/index.js",
     "prettier": "prettier src --write",
     "check:updates": "npx npm-check-updates",
     "apply:updates": "npx npm-check-updates -u"

@@ -37,6 +37,7 @@ app.route('/api/containers', containersRoutes)
 
 app.get('/assets/*', serveStatic({ root: './src/fe-dist' }))
 app.get('/favicon.ico', serveStatic({ path: './src/fe-dist/favicon.ico' }))
+app.get('/logo.png', serveStatic({ path: './src/fe-dist/logo.png' }))
 
 app.get(
     '*',
@@ -55,7 +56,12 @@ scheduleJob(Bun.env.SCAN_CRON_STRING, function(){
     scanAllContainers()
 });
 
+const port = Bun.env.APP_PORT || 3000
+const isProduction = Bun.env.NODE_ENV === 'production'
+
+console.log(`Started ${isProduction ? 'production' : 'development'} server: http://localhost:${port}`)
+
 export default {
-    port: Bun.env.APP_PORT || 3000,
+    port: port,
     fetch: app.fetch
 }
