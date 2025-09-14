@@ -1,6 +1,6 @@
 #!/bin/bash
 
-HOSTNAME=$(hostname)
+HOSTNAME=${AGENT_HOSTNAME:-$(hostname)}
 
 ENDPOINT="${LUSSINO_SERVER_ENDPOINT:?LUSSINO_SERVER_ENDPOINT must be set}"
 
