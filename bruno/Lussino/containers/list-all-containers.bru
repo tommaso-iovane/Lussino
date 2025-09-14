@@ -1,0 +1,22 @@
+meta {
+  name: List All Containers
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/api/containers/list
+  body: none
+  auth: none
+}
+
+headers {
+  Cookie: {{sessionCookie}}
+}
+
+assert {
+  res.status: eq 200
+  res.body.containers: isDefined
+  res.body.totalContainers: isDefined
+  res.body.hostnameFilter: isNull
+}

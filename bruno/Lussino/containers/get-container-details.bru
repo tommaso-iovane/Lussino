@@ -1,0 +1,29 @@
+meta {
+  name: Get Container Details
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{baseUrl}}/api/containers/details/:containerid
+  body: none
+  auth: none
+}
+
+params:path {
+  containerid: 19
+}
+
+headers {
+  Cookie: {{sessionCookie}}
+}
+
+assert {
+  res.status: eq 200
+  res.body.id: isDefined
+  res.body.hostname: isDefined
+  res.body.name: isDefined
+  res.body.repository: isDefined
+  res.body.tag: isDefined
+  res.body.scans: isDefined
+}

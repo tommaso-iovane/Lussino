@@ -1,0 +1,9 @@
+{
+  "version": "1",
+  "name": "Lussino",
+  "type": "collection",
+  "ignore": [
+    "node_modules",
+    ".git"
+  ]
+}

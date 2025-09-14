@@ -1,0 +1,50 @@
+meta {
+  name: Update Containers
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/api/containers/update-containers
+  body: json
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{agentToken}}
+}
+
+body:json {
+  {
+    "hostname": "web-server-01",
+    "containers": [
+      {
+        "name": "nginx-container",
+        "repository": "nginx",
+        "tag": "latest",
+        "digest": "sha256:abc123def456ghi789jkl012mno345pqr678stu901vwx234yz567890abcdef",
+        "imageId": "nginx_latest_001"
+      },
+      {
+        "name": "app-container", 
+        "repository": "mycompany/webapp",
+        "tag": "v1.2.3",
+        "digest": "sha256:def456ghi789jkl012mno345pqr678stu901vwx234yz567890abcdef123456",
+        "imageId": "webapp_v123_002"
+      }
+    ]
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.added: isDefined
+  res.body.removed: isDefined
+}
+
+script:pre-request {
+  // Make sure we have an agent token
+  if (!bru.getVar("agentToken")) {
+    bru.setVar("agentToken", "your-agent-token-here");
+  }
+}

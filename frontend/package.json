@@ -1,0 +1,26 @@
+{
+  "name": "frontend",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build && rm -r ../server/src/fe-dist && mv dist ../server/src/fe-dist",
+    "prettier": "prettier src --write",
+    "check:updates": "npx npm-check-updates",
+    "apply:updates": "npx npm-check-updates -u"
+  },
+  "devDependencies": {
+    "@sveltejs/vite-plugin-svelte": "^6.1.1",
+    "@tailwindcss/vite": "^4.1.13",
+    "prettier": "^3.6.2",
+    "prettier-plugin-svelte": "^3.4.0",
+    "prettier-plugin-tailwindcss": "^0.6.14",
+    "svelte": "^5.38.1",
+    "tailwindcss": "^4.1.13",
+    "vite": "^7.1.2"
+  },
+  "dependencies": {
+    "@vincjo/datatables": "^2.6.3"
+  }
+}

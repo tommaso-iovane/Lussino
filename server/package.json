@@ -1,0 +1,19 @@
+{
+  "name": "server",
+  "type": "module",
+  "scripts": {
+    "dev": "bun run --hot src/index.js",
+    "prettier": "prettier src --write",
+    "check:updates": "npx npm-check-updates",
+    "apply:updates": "npx npm-check-updates -u"
+  },
+  "dependencies": {
+    "bcryptjs": "^3.0.2",
+    "hono": "^4.9.7",
+    "node-schedule": "^2.1.1"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "prettier": "^3.6.2"
+  }
+}

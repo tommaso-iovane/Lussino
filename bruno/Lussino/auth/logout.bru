@@ -1,0 +1,34 @@
+meta {
+  name: Logout
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{baseUrl}}/api/auth/logout
+  body: none
+  auth: none
+}
+
+headers {
+  Cookie: {{sessionCookie}}
+}
+
+assert {
+  res.status: eq 200
+  res.body.message: eq Logout successful
+}
+
+script:pre-request {
+  // Make sure we have a session cookie from login
+  if (!bru.getVar("sessionCookie")) {
+    throw new Error("No session cookie found. Please login first.");
+  }
+}
+
+script:post-response {
+  if (res.status === 200) {
+    // Clear the session cookie after successful logout
+    bru.setVar("sessionCookie", "");
+  }
+}
