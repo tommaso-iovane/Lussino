@@ -115,16 +115,14 @@ Set up automatic vulnerability scanning:
 
 ```bash
 # Download and install agent
-sudo mkdir -p /opt/lussino
-sudo chown $USER: /opt/lussino
-wget -O /opt/lussino/lussino-agent.sh https://raw.githubusercontent.com/tommaso-iovane/Lussino/refs/heads/main/agent/agent.sh
-chmod +x /opt/lussino/lussino-agent.sh
+wget -O ./lussino-agent.sh https://raw.githubusercontent.com/tommaso-iovane/Lussino/refs/heads/main/agent/agent.sh
+chmod +x ./lussino-agent.sh
 
 # Configure the agent (run once to set up configuration)
-/opt/lussino/lussino-agent.sh
+./lussino-agent.sh
 
 # Add to crontab for daily scans at 4 AM
-echo "0 4 * * * /opt/lussino/lussino-agent.sh" | crontab -
+echo "0 4 * * * PATH_TO_LUSSINO_AGENT/lussino-agent.sh" | crontab -
 
 # Or edit crontab manually
 crontab -e
