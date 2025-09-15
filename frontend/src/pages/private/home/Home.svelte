@@ -3,7 +3,7 @@
 	import { fade, fly } from 'svelte/transition';
 	import { quintOut } from 'svelte/easing';
 	import { TableHandler, Datatable, ThSort, ThFilter } from '@vincjo/datatables';
-	import { getContainers, flattenContainers, formatVulnerabilities, getVulnerabilitySeverityClass } from '../../../shared/services/containers.js';
+	import { getContainers, flattenContainers, formatVulnerabilities, getVulnerabilitySeverityClass, scanAllContainers } from '../../../shared/services/containers.js';
 	import Loader from '../../../shared/components/Loader.svelte';
 	import ThemeToggle from '../../../shared/components/ThemeToggle.svelte';
 	import { toast } from '../../../shared/services/toast.js';
@@ -18,6 +18,7 @@
 	let hostnameFilter = $state('');
 	let totalContainers = $state(0);
 	let pollInterval = $state(null);
+	let isScanning = $state(false);
 
 	// Create reactive table handler
 	$effect(() => {
@@ -78,6 +79,25 @@
 		if (pollInterval) {
 			clearInterval(pollInterval);
 			pollInterval = null;
+		}
+	}
+
+	/**
+	 * Initiate vulnerability scan for all containers
+	 */
+	async function handleScanAll() {
+		try {
+			isScanning = true;
+			await scanAllContainers();
+			
+			// Refresh data after a short delay to allow scan to start
+			setTimeout(() => {
+				loadContainers(false);
+			}, 2000);
+		} catch (error) {
+			console.error('Failed to initiate scan:', error);
+		} finally {
+			isScanning = false;
 		}
 	}
 
@@ -168,6 +188,24 @@
 				</div>
 			</div>
 			<div class="mt-4 sm:mt-0 flex items-center space-x-3">
+				<button
+					onclick={handleScanAll}
+					disabled={isScanning}
+					class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-offset-gray-900 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
+				>
+					{#if isScanning}
+						<svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+							<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+							<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+						</svg>
+						Scanning...
+					{:else}
+						<svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+						</svg>
+						Scan All
+					{/if}
+				</button>
 				<button
 					onclick={() => navigate('/profile')}
 					class="inline-flex items-center px-3 py-2 border border-gray-300 dark:border-gray-600 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-offset-gray-900 transition-colors duration-200"

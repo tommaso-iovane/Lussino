@@ -78,7 +78,6 @@ export const scanContainer = async (containerId) => {
 
     } catch (error) {
         console.error(`Grype scan failed for container ${containerId}:`, error.message)
-        throw new Error(`Vulnerability scan failed: ${error.message}`)
     }
 }
 

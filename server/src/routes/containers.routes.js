@@ -1,7 +1,7 @@
 import { Hono } from 'hono'
 import { agentTokenIsValid, isLogged } from '../middlewares/auth-middleware'
 import { updateContainersByHostname, getContainersWithVulnerabilities, getContainerDetails } from '../repository/containers'
-import { deferScanAllByHostname } from '../repository/grype'
+import { deferScanAllByHostname, scanAllContainers } from '../repository/grype'
 import { checkAllContainersForUpdates } from '../repository/updates'
 
 const containersRoutes = new Hono()
@@ -85,6 +85,32 @@ containersRoutes.get('/details/:id', isLogged, async (c) => {
         
     } catch (error) {
         console.error('Failed to get container details:', error)
+        return c.json({ error: 'Internal server error' }, 500)
+    }
+})
+
+containersRoutes.post('/scan-all', isLogged, async (c) => {
+    try {
+        const body = await c.req.json()
+        const hostname = body?.hostname // Optional: scan specific hostname only
+        
+        if (hostname) {
+            // Scan containers for specific hostname
+            deferScanAllByHostname(hostname)
+            return c.json({ 
+                message: `Vulnerability scan initiated for hostname: ${hostname}`,
+                hostname: hostname
+            })
+        } else {
+            // Scan all containers
+            scanAllContainers()
+            return c.json({ 
+                message: 'Vulnerability scan initiated for all containers'
+            })
+        }
+        
+    } catch (error) {
+        console.error('Failed to initiate container scan:', error)
         return c.json({ error: 'Internal server error' }, 500)
     }
 })

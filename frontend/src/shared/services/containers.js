@@ -1,4 +1,4 @@
-import { get } from './http.js';
+import { get, post } from './http.js';
 import { toast } from './toast.js';
 
 /**
@@ -101,4 +101,28 @@ export function getVulnerabilitySeverityClass(vulnerabilities) {
 	if (medium > 0) return 'text-yellow-500';
 	
 	return 'text-green-500';
+}
+
+/**
+ * Initiate vulnerability scan for all containers or specific hostname
+ * @param {string} [hostname] - Optional hostname to scan specific containers only
+ * @returns {Promise<Object>} Scan initiation response
+ */
+export async function scanAllContainers(hostname = null) {
+	try {
+		const payload = hostname ? { hostname } : {};
+		const data = await post('/api/containers/scan-all', payload);
+		
+		if (data.error) {
+			toast.error(data.message || 'Failed to initiate scan');
+			throw new Error(data.message || 'Failed to initiate scan');
+		}
+		
+		toast.success(data.message || 'Vulnerability scan initiated');
+		return data;
+	} catch (error) {
+		console.error('Failed to initiate container scan:', error);
+		toast.error('Failed to initiate vulnerability scan');
+		throw error;
+	}
 }
