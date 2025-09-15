@@ -17,6 +17,7 @@
 	let searchValue = $state('');
 	let hostnameFilter = $state('');
 	let totalContainers = $state(0);
+	let pollInterval = $state(null);
 
 	// Create reactive table handler
 	$effect(() => {
@@ -31,21 +32,52 @@
 	/**
 	 * Load containers data from API
 	 */
-	async function loadContainers() {
+	async function loadContainers(showToast = true) {
 		try {
-			isLoading = true;
+			if (showToast) isLoading = true;
 			const response = await getContainers();
 			
 			containers = flattenContainers(response.containers);
 			totalContainers = response.totalContainers;
-			filteredData = containers;
 			
-			toast.success(`Loaded ${totalContainers} containers`);
+			// Reapply filters to maintain current view
+			applyFilters();
+			
+			if (showToast) {
+				toast.success(`Loaded ${totalContainers} containers`);
+			}
 		} catch (error) {
 			console.error('Failed to load containers:', error);
-			toast.error('Failed to load containers');
+			if (showToast) {
+				toast.error('Failed to load containers');
+			}
 		} finally {
-			isLoading = false;
+			if (showToast) isLoading = false;
+		}
+	}
+
+	/**
+	 * Start polling for data updates
+	 */
+	function startPolling() {
+		// Clear any existing interval
+		if (pollInterval) {
+			clearInterval(pollInterval);
+		}
+		
+		// Poll every minute (60000ms)
+		pollInterval = setInterval(() => {
+			loadContainers(false); // Don't show loading spinner or success toast for automatic refreshes
+		}, 60000);
+	}
+
+	/**
+	 * Stop polling
+	 */
+	function stopPolling() {
+		if (pollInterval) {
+			clearInterval(pollInterval);
+			pollInterval = null;
 		}
 	}
 
@@ -111,6 +143,12 @@
 	// Load data on component mount
 	onMount(() => {
 		loadContainers();
+		startPolling();
+		
+		// Cleanup polling when component is destroyed
+		return () => {
+			stopPolling();
+		};
 	});
 </script>
 
@@ -257,7 +295,7 @@
 						<!-- Table -->
 						<div class="overflow-hidden border border-gray-200 dark:border-gray-700 rounded-lg">
 							<div class="overflow-x-auto">
-								<table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700 table-fixed">
+								<table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700 table-auto">
 									<thead class="bg-gray-50 dark:bg-gray-700">
 										<tr>
 											<ThSort {table} field="name">

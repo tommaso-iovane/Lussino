@@ -2,6 +2,8 @@
 
 A lightweight and simple container vulnerability scanning platform that helps organizations monitor and secure their containerized applications using **Grype**.
 
+![dashboard](./images/image.png)
+
 ## Key Highlights
 
 - **Zero-Dependency Agent**: Lightweight bash script requiring no installation or dependencies

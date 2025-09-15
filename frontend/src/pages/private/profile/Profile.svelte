@@ -1,6 +1,7 @@
 <script>
 	import ThemeToggle from '../../../shared/components/ThemeToggle.svelte';
 	import { changePassword } from '../../../shared/services/auth.js';
+	import { navigate } from '../../../shared/classes/Router.js';
 
 	// State variables  
 	let passwordForm = $state({
@@ -99,9 +100,20 @@
         <!-- Header -->
         <div class="mb-8">
             <div class="flex items-center justify-between">
-                <div>
-                    <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Change Password</h1>
-                    <p class="mt-2 text-gray-600 dark:text-gray-400">Update your password to keep your account secure</p>
+                <div class="flex items-center">
+                    <button
+                        onclick={() => navigate('/')}
+                        class="mr-4 inline-flex items-center px-3 py-2 border border-gray-300 dark:border-gray-600 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-offset-gray-900 transition-colors duration-200"
+                    >
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+                        </svg>
+                        Back to Dashboard
+                    </button>
+                    <div>
+                        <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Change Password</h1>
+                        <p class="mt-2 text-gray-600 dark:text-gray-400">Update your password to keep your account secure</p>
+                    </div>
                 </div>
                 <ThemeToggle />
             </div>
@@ -114,7 +126,7 @@
                 <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">Update your password to keep your account secure</p>
             </div>
 
-            <form on:submit|preventDefault={handlePasswordChange} class="px-6 py-5">
+            <form onsubmit={(e) => { e.preventDefault(); handlePasswordChange(); }} class="px-6 py-5">
                 <!-- Message Display -->
                 {#if message}
                     <div
