@@ -1,6 +1,6 @@
 #!/bin/bash
 
-source ./lussino.env
+source /opt/lussino/lussino.env
 
 HOSTNAME=${AGENT_HOSTNAME:-$(hostname)}
 
