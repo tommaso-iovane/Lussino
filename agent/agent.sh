@@ -1,5 +1,7 @@
 #!/bin/bash
 
+source ./lussino.env
+
 HOSTNAME=${AGENT_HOSTNAME:-$(hostname)}
 
 ENDPOINT="${LUSSINO_SERVER_ENDPOINT:?LUSSINO_SERVER_ENDPOINT must be set}"

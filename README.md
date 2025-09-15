@@ -101,27 +101,16 @@ Set up automatic vulnerability scanning:
 
 ```bash
 # Download and install agent
-wget -O /opt/lussino-agent.sh https://raw.githubusercontent.com/tommaso-iovane/Lussino/refs/heads/main/agent/agent.sh
-chmod +x /opt/lussino-agent.sh
-
-# Create environment file
-cat > /opt/lussino-agent.env << EOF
-LUSSINO_SERVER_ENDPOINT=http://your-lussino-server:3000
-LUSSINO_AUTH_TOKEN=your-auth-token
-AGENT_NAME=$(hostname)
-AGENT_HOSTNAME=$(hostname -f)
-EOF
-
-# Create wrapper script for cron
-cat > /opt/lussino-cron.sh << 'EOF'
-#!/bin/bash
-source /opt/lussino-agent.env
-/opt/lussino-agent.sh
-EOF
-chmod +x /opt/lussino-cron.sh
+sudo mkdir -p /opt/lussino
+sudo chown $USER: /opt/lussino
+wget -O /opt/lussino/lussino-agent.sh https://raw.githubusercontent.com/tommaso-iovane/Lussino/refs/heads/main/agent/agent.sh
+chmod +x /opt/lussino/lussino-agent.sh
+wget -O /opt/lussino/lussino.env https://raw.githubusercontent.com/tommaso-iovane/Lussino/refs/heads/main/agent/lussino.env
+# Edit variables
+vim /opt/lussino/lussino.env
 
 # Add to crontab for daily scans at 4 AM
-echo "0 4 * * * /opt/lussino-cron.sh" | crontab -
+echo "0 4 * * * /opt/lussino/lussino-agent.sh" | crontab -
 
 # Or edit crontab manually
 crontab -e
