@@ -70,32 +70,44 @@ cd frontend && bun install && bun run dev
 
 Deploy the scanning agent on any host with Docker - **no dependencies required** (except of course docker):
 
-### Environment Variables
+### First-Time Setup
 
-Configure the agent by setting these environment variables:
+The agent uses an interactive configuration process on first run:
 
-```bash
-# Required: Lussino server endpoint
-export LUSSINO_SERVER_ENDPOINT="http://your-lussino-server:3000"
-# Optional: Authentication token
-export LUSSINO_AUTH_TOKEN="your-auth-token"
-# Optional: Set a custom hostname
-export AGENT_HOSTNAME="yourHostname"
-```
-
-### Method 1: Direct Download (Recommended)
 ```bash
 # Download agent directly from GitHub
 wget https://raw.githubusercontent.com/tommaso-iovane/Lussino/refs/heads/main/agent/agent.sh
 chmod +x agent.sh
 
-# Set environment variables
-export LUSSINO_SERVER_ENDPOINT="http://your-lussino-server:3000"
-
-# Run scan
+# Run for first-time setup (will prompt for configuration)
 ./agent.sh
 ```
 
+The agent will prompt you for:
+- **Server endpoint** (required): Your Lussino server URL (e.g., `http://your-server:3000`)
+- **Authentication token** (optional): Leave blank if not using authentication  
+- **Custom hostname** (optional): Override system hostname for identification
+
+Configuration is saved to `~/.config/lussino/config` and can be edited manually or deleted to reconfigure.
+
+### Manual Configuration
+
+You can also create the configuration file manually:
+
+```bash
+# Create configuration directory
+mkdir -p ~/.config/lussino
+
+# Create configuration file
+cat > ~/.config/lussino/config << EOF
+LUSSINO_SERVER_ENDPOINT="http://your-lussino-server:3000"
+LUSSINO_AUTH_TOKEN="your-auth-token"
+AGENT_HOSTNAME="custom-hostname"
+EOF
+
+# Set secure permissions
+chmod 600 ~/.config/lussino/config
+```
 
 ### Automated Scanning with Crontab
 
@@ -107,15 +119,15 @@ sudo mkdir -p /opt/lussino
 sudo chown $USER: /opt/lussino
 wget -O /opt/lussino/lussino-agent.sh https://raw.githubusercontent.com/tommaso-iovane/Lussino/refs/heads/main/agent/agent.sh
 chmod +x /opt/lussino/lussino-agent.sh
-wget -O /opt/lussino/lussino.env https://raw.githubusercontent.com/tommaso-iovane/Lussino/refs/heads/main/agent/lussino.env
-# Edit variables
-vim /opt/lussino/lussino.env
+
+# Configure the agent (run once to set up configuration)
+/opt/lussino/lussino-agent.sh
 
 # Add to crontab for daily scans at 4 AM
 echo "0 4 * * * /opt/lussino/lussino-agent.sh" | crontab -
 
 # Or edit crontab manually
 crontab -e
-# Add: 0 2 * * * /opt/lussino-cron.sh
+# Add: 0 4 * * * /opt/lussino/lussino-agent.sh
 ```
 
