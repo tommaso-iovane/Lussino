@@ -8,6 +8,11 @@ services:
       - "3000:3000"
     volumes:
       - ./data:/app/data
+    cap_add:
+      - SYS_ADMIN  # Required for fuse-overlayfs
+      - DAC_OVERRIDE  # Required for Docker daemon operations
+    security_opt:
+      - apparmor:unconfined  # Allow fuse-overlayfs operations
     environment:
       - NODE_ENV=production
     restart: unless-stopped
@@ -16,6 +21,7 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+      start_period: 40s  # Give more time for Docker daemon to start
 
 volumes:
   data:

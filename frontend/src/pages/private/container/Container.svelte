@@ -17,6 +17,8 @@
 	let containerId = $state(null);
 	let selectedScan = $state(null);
 	let vulnerabilityTables = $state(new Map());
+	let selectedCve = $state(null);
+	let showCveDialog = $state(false);
 
 	/**
 	 * Format date for display
@@ -77,6 +79,55 @@
 			default:
 				return 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200';
 		}
+	}
+
+	/**
+	 * Format digest for display (show first 12 characters + copy functionality)
+	 */
+	function formatDigest(digest) {
+		if (!digest) return 'N/A';
+		// Remove sha256: prefix if present
+		const cleanDigest = digest.startsWith('sha256:') ? digest.substring(7) : digest;
+		return cleanDigest.substring(0, 12) + '...';
+	}
+
+	/**
+	 * Copy digest to clipboard
+	 */
+	function copyDigest(digest) {
+		if (!digest) return;
+		navigator.clipboard.writeText(digest).then(() => {
+			toast.success('Digest copied to clipboard');
+		}).catch(() => {
+			toast.error('Failed to copy digest');
+		});
+	}
+
+	/**
+	 * Open CVE details dialog
+	 */
+	function openCveDialog(cve) {
+		selectedCve = cve;
+		showCveDialog = true;
+	}
+
+	/**
+	 * Close CVE details dialog
+	 */
+	function closeCveDialog() {
+		showCveDialog = false;
+		selectedCve = null;
+	}
+
+	/**
+	 * Copy CVE ID to clipboard
+	 */
+	function copyCveId(cveId) {
+		navigator.clipboard.writeText(cveId).then(() => {
+			toast.success(`${cveId} copied to clipboard`);
+		}).catch(() => {
+			toast.error('Failed to copy CVE ID');
+		});
 	}
 
 	/**
@@ -269,7 +320,7 @@
 			<!-- Container Overview -->
 			<div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 mb-8" 
 				 in:fly={{ y: 20, duration: 500, delay: 200, easing: quintOut }}>
-				<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
+				<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6">
 					<div>
 						<dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Container Name</dt>
 						<dd class="mt-1 text-sm font-semibold text-gray-900 dark:text-gray-100">{container.name}</dd>
@@ -300,6 +351,29 @@
 							<span class="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200">
 								{container.tag}
 							</span>
+						</dd>
+					</div>
+					<div>
+						<dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Digest ID</dt>
+						<dd class="mt-1">
+							{#if container.digest}
+								<div class="flex items-center gap-2">
+									<span class="inline-flex items-center px-2 py-1 rounded text-xs font-mono bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-300">
+										{formatDigest(container.digest)}
+									</span>
+									<button
+										onclick={() => copyDigest(container.digest)}
+										class="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+										title="Copy full digest to clipboard"
+									>
+										<svg class="w-3 h-3 text-gray-500 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+											<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+										</svg>
+									</button>
+								</div>
+							{:else}
+								<span class="text-xs text-gray-500 dark:text-gray-400">N/A</span>
+							{/if}
 						</dd>
 					</div>
 					<div>
@@ -535,7 +609,8 @@
 																</thead>
 																<tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
 																	{#each table.rows as vuln (vuln.uniqueId)}
-																		<tr class="bg-white dark:bg-gray-800 hover:!bg-gray-50 dark:hover:!bg-gray-700 transition-colors duration-150">
+																		<tr class="bg-white dark:bg-gray-800 hover:!bg-gray-50 dark:hover:!bg-gray-700 transition-colors duration-150 cursor-pointer" 
+																			onclick={() => openCveDialog(vuln)}>
 																			<td class="px-6 py-4 whitespace-nowrap">
 																				<div class="text-sm font-medium text-gray-900 dark:text-gray-100">
 																					{vuln.cveId}
@@ -624,3 +699,150 @@
 		{/if}
 	</div>
 </div>
+
+<!-- CVE Details Dialog -->
+{#if showCveDialog && selectedCve}
+	<div class="fixed inset-0 bg-gray-600 bg-opacity-50 dark:bg-gray-900 dark:bg-opacity-75 overflow-y-auto h-full w-full z-50 flex items-center justify-center p-4" 
+		 onclick={closeCveDialog} 
+		 in:fade={{ duration: 200 }}>
+		<div class="relative bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden" 
+			 onclick={(e) => e.stopPropagation()}
+			 in:fly={{ y: 20, duration: 300 }}>
+			
+			<!-- Dialog Header -->
+			<div class="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+				<div class="flex items-center gap-4">
+					<div class="flex-shrink-0">
+						<div class="w-10 h-10 bg-red-100 dark:bg-red-900/30 rounded-lg flex items-center justify-center">
+							<svg class="w-6 h-6 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"/>
+							</svg>
+						</div>
+					</div>
+					<div>
+						<h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+							{selectedCve.cveId}
+							<button
+								onclick={() => copyCveId(selectedCve.cveId)}
+								class="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+								title="Copy CVE ID to clipboard"
+							>
+								<svg class="w-4 h-4 text-gray-500 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+								</svg>
+							</button>
+						</h3>
+						<div class="flex items-center gap-3 mt-1">
+							<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {getSeverityBadgeClass(selectedCve.severity)}">
+								{selectedCve.severity}
+							</span>
+							<span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-bold {getRiskScoreBadgeClass(selectedCve.riskScore)}">
+								Risk: {formatRiskScore(selectedCve.riskScore)}
+							</span>
+						</div>
+					</div>
+				</div>
+				<button
+					onclick={closeCveDialog}
+					class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
+				>
+					<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+					</svg>
+				</button>
+			</div>
+
+			<!-- Dialog Content -->
+			<div class="p-6 overflow-y-auto max-h-[70vh]">
+				<div class="space-y-6">
+					
+					<!-- Package Information -->
+					<div>
+						<h4 class="text-sm font-medium text-gray-900 dark:text-gray-100 mb-3">Affected Package</h4>
+						<div class="bg-gray-50 dark:bg-gray-900/50 rounded-lg p-4">
+							<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+								<div>
+									<dt class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Package Name</dt>
+									<dd class="mt-1 text-sm font-medium text-gray-900 dark:text-gray-100">{selectedCve.package.name}</dd>
+								</div>
+								<div>
+									<dt class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Current Version</dt>
+									<dd class="mt-1 text-sm text-gray-900 dark:text-gray-100">v{selectedCve.package.version}</dd>
+								</div>
+								<div>
+									<dt class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Package Type</dt>
+									<dd class="mt-1">
+										<span class="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300">
+											{selectedCve.package.type}
+										</span>
+									</dd>
+								</div>
+								<div>
+									<dt class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Fixed Version</dt>
+									<dd class="mt-1">
+										{#if selectedCve.package.fixedVersion}
+											<span class="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300">
+												v{selectedCve.package.fixedVersion}
+											</span>
+										{:else}
+											<span class="text-sm text-gray-500 dark:text-gray-400">No fix available</span>
+										{/if}
+									</dd>
+								</div>
+							</div>
+						</div>
+					</div>
+
+					<!-- Description -->
+					<div>
+						<h4 class="text-sm font-medium text-gray-900 dark:text-gray-100 mb-3">Description</h4>
+						<div class="prose prose-sm dark:prose-invert max-w-none">
+							<p class="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
+								{selectedCve.description || 'No description available for this vulnerability.'}
+							</p>
+						</div>
+					</div>
+
+					<!-- References -->
+					{#if selectedCve.urls && selectedCve.urls.length > 0}
+						<div>
+							<h4 class="text-sm font-medium text-gray-900 dark:text-gray-100 mb-3">References & Resources</h4>
+							<div class="space-y-2">
+								{#each [...new Set(selectedCve.urls)] as url, index}
+									{#if index < 10}
+										<a 
+											href={url} 
+											target="_blank" 
+											rel="noopener noreferrer"
+											class="flex items-center gap-2 text-sm text-primary-600 dark:text-primary-400 hover:text-primary-900 dark:hover:text-primary-300 hover:underline transition-colors"
+										>
+											<svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+												<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
+											</svg>
+											<span class="truncate">{url}</span>
+										</a>
+									{/if}
+								{/each}
+								{#if selectedCve.urls.length > 10}
+									<p class="text-xs text-gray-500 dark:text-gray-400">
+										+ {selectedCve.urls.length - 10} more references available
+									</p>
+								{/if}
+							</div>
+						</div>
+					{/if}
+				</div>
+			</div>
+
+			<!-- Dialog Footer -->
+			<div class="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50">
+				<button
+					onclick={closeCveDialog}
+					class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors"
+				>
+					Close
+				</button>
+			</div>
+		</div>
+	</div>
+{/if}

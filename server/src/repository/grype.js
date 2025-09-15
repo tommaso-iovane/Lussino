@@ -23,6 +23,7 @@ export const scanAllContainers = async () => {
 
 export const scanContainer = async (containerId) => {
     try {
+        console.log(`Starting scan for ${containerId}`)
         const containerStmt = db.prepare('SELECT * FROM containers WHERE id = ?')
         const container = containerStmt.get(containerId)
 
@@ -30,13 +31,36 @@ export const scanContainer = async (containerId) => {
             throw new Error(`Container with ID ${containerId} not found`)
         }
 
-        const digestId = container.digest
-        if (!digestId) {
-            throw new Error(`Container ${containerId} has no digest`)
+        // Try to scan using the digest first (most specific)
+        let imageRef = container.digest
+        let result
+        
+        try {
+            if (container.digest) {
+                console.log(`Scanning with digest: ${imageRef}`)
+                result = await $`grype ${imageRef} -o json`.text()
+            } else {
+                throw new Error('No digest available')
+            }
+        } catch (digestError) {
+            console.log(`Digest scan failed, trying with repository:tag: ${container.repository}:${container.tag}`)
+            // Fallback to using the repository:tag (local image)
+            try {
+                imageRef = `${container.repository}:${container.tag}`
+                result = await $`grype ${imageRef} -o json`.text()
+            } catch (localError) {
+                console.log(`Repository:tag scan failed, trying with image ID: ${container.imageId}`)
+                // Last resort: try with image ID
+                try {
+                    imageRef = container.imageId
+                    result = await $`grype ${imageRef} -o json`.text()
+                } catch (imageIdError) {
+                    throw new Error(`All scan attempts failed. Digest: ${digestError.message}, Local: ${localError.message}, ImageID: ${imageIdError.message}`)
+                }
+            }
         }
-
-        // Run grype scan
-        const result = await $`grype ${digestId} -o json`.text()
+        
+        console.log(`Grype scan completed for ${containerId} using ${imageRef}`)
         
         // Parse JSON result
         let grypeScanResults
@@ -77,7 +101,7 @@ export const scanContainer = async (containerId) => {
         }
 
     } catch (error) {
-        console.error(`Grype scan failed for container ${containerId}:`, error.message)
+        console.error(`Grype scan failed for container ${containerId}:`, error)
     }
 }
 

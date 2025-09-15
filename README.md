@@ -21,6 +21,8 @@ A lightweight and simple container vulnerability scanning platform that helps or
 
 ## Deployment
 
+### Using Docker Compose (Recommended)
+
 Create a `docker-compose.yml` file:
 
 ```yaml
@@ -32,6 +34,11 @@ services:
       - "3007:3000"
     volumes:
       - ./data:/app/data
+    cap_add:
+      - SYS_ADMIN  # Required for internal vulnerability scanning
+      - DAC_OVERRIDE  # Required for Docker daemon operations
+    security_opt:
+      - apparmor:unconfined  # Allow fuse-overlayfs operations
     environment:
       NODE_ENV: production
       APP_URL: "http://localhost:3000"
@@ -47,11 +54,31 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+      start_period: 40s
 ```
 
 Deploy with:
 ```bash
 docker-compose up -d
+```
+
+### Using Docker Run
+
+```bash
+docker run -d \
+  --name lussino \
+  -p 3007:3000 \
+  -v ./data:/app/data \
+  --cap-add SYS_ADMIN \
+  --cap-add DAC_OVERRIDE \
+  --security-opt apparmor:unconfined \
+  -e NODE_ENV=production \
+  -e APP_URL="http://localhost:3000" \
+  -e AGENT_TOKEN="1234" \
+  -e IGNORE_RISK_BELOW=10 \
+  -e SCAN_CRON_STRING="0 2 * * *" \
+  --restart unless-stopped \
+  tiovane/lussino:latest
 ```
 
 Default credentials: admin / changeme
