@@ -19,7 +19,7 @@ app.use(trimTrailingSlash())
 app.use(
     '*',
     cors({
-        origin: Bun.env.APP_URL || 'http://localhost:5173',
+        origin: Bun.env.VITE_BASE_URL || 'http://localhost:5173',
         credentials: true
     })
 )
