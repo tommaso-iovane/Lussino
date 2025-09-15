@@ -66,7 +66,7 @@ authRoutes.post('/update-password', isLogged, async (c) => {
       return c.json({ error: 'Current password and new password are required' }, 400)
     }
 
-    await changePassword(session.user.id, currentPassword, newPassword)
+    await changePassword(session.userId, currentPassword, newPassword)
 
     return c.json({ message: 'Password updated successfully' })
   } catch (error) {

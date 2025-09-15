@@ -1,7 +1,6 @@
 import { toast } from './toast.js'
 
-const baseUrl = import.meta.env.VITE_BASE_URL
-
+const baseUrl = import.meta.env.VITE_BASE_URL || ''
 /**
  * Handle HTTP errors and display appropriate toast messages
  * @param {Response} response - Fetch response object
