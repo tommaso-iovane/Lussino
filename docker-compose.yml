@@ -15,6 +15,9 @@ services:
       - apparmor:unconfined  # Allow fuse-overlayfs operations
     environment:
       - NODE_ENV=production
+      # Docker Hub credentials for pulling private images (optional)
+      - DOCKER_USERNAME=${DOCKER_USERNAME}
+      - DOCKER_TOKEN=${DOCKER_TOKEN}
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3000/healthz"]

@@ -48,6 +48,9 @@ services:
       IGNORE_RISK_BELOW: 10
       # Container scan cron job schedule
       SCAN_CRON_STRING: "0 2 * * *"
+      # (Optional) Docker login info, get higher usage limit from dockerhub https://docs.docker.com/docker-hub/usage/
+      DOCKER_USERNAME: ""
+      DOCKER_TOKEN: ""
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3000/healthz"]
@@ -60,25 +63,6 @@ services:
 Deploy with:
 ```bash
 docker-compose up -d
-```
-
-### Using Docker Run
-
-```bash
-docker run -d \
-  --name lussino \
-  -p 3007:3000 \
-  -v ./data:/app/data \
-  --cap-add SYS_ADMIN \
-  --cap-add DAC_OVERRIDE \
-  --security-opt apparmor:unconfined \
-  -e NODE_ENV=production \
-  -e APP_URL="http://localhost:3000" \
-  -e AGENT_TOKEN="1234" \
-  -e IGNORE_RISK_BELOW=10 \
-  -e SCAN_CRON_STRING="0 2 * * *" \
-  --restart unless-stopped \
-  tiovane/lussino:latest
 ```
 
 Default credentials: admin / changeme

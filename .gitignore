@@ -1,2 +1,7 @@
 data
 server/data/*
+
+# Environment files containing secrets
+.env
+.env.local
+.env.production

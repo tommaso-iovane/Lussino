@@ -43,29 +43,9 @@ EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD curl -f http://localhost:3000/healthz || exit 1
 
-# Create startup script to start Docker daemon and application
-RUN echo '#!/bin/sh' > /app/start.sh && \
-    echo 'echo "Starting Docker daemon with fuse-overlayfs for unprivileged operation..."' >> /app/start.sh && \
-    echo 'mkdir -p /var/lib/docker' >> /app/start.sh && \
-    echo 'dockerd --data-root=/var/lib/docker &' >> /app/start.sh && \
-    echo 'DOCKER_PID=$!' >> /app/start.sh && \
-    echo 'echo "Waiting for Docker daemon to start (PID: $DOCKER_PID)..."' >> /app/start.sh && \
-    echo 'for i in $(seq 1 30); do' >> /app/start.sh && \
-    echo '  if docker version >/dev/null 2>&1; then' >> /app/start.sh && \
-    echo '    echo "Docker daemon is ready!"' >> /app/start.sh && \
-    echo '    break' >> /app/start.sh && \
-    echo '  fi' >> /app/start.sh && \
-    echo '  echo "Waiting... ($i/30)"' >> /app/start.sh && \
-    echo '  sleep 2' >> /app/start.sh && \
-    echo 'done' >> /app/start.sh && \
-    echo 'if ! docker version >/dev/null 2>&1; then' >> /app/start.sh && \
-    echo '  echo "Docker daemon failed to start properly"' >> /app/start.sh && \
-    echo '  echo "Checking Docker daemon logs:"' >> /app/start.sh && \
-    echo '  journalctl -u docker --no-pager -n 20 || echo "No systemd logs available"' >> /app/start.sh && \
-    echo 'fi' >> /app/start.sh && \
-    echo 'echo "Starting Lussino application..."' >> /app/start.sh && \
-    echo 'exec bun run start' >> /app/start.sh && \
-    chmod +x /app/start.sh
+# Copy and setup startup script
+COPY start.sh /app/start.sh
+RUN chmod +x /app/start.sh
 
 # Start the application with Docker daemon
 CMD ["/app/start.sh"]
