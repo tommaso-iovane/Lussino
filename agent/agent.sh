@@ -11,7 +11,8 @@ mkdir -p "$CONFIG_DIR"
 ensure_grype_installed() {
     if ! command -v grype &> /dev/null; then
         echo "Grype not found. Installing Grype..."
-        if ! wget -q -O - https://raw.githubusercontent.com/anchore/grype/main/install.sh | sh -s -- -b /usr/local/bin; then
+        echo "This requires sudo permissions to install to /usr/local/bin"
+        if ! sudo wget -q -O - https://raw.githubusercontent.com/anchore/grype/main/install.sh | sudo sh -s -- -b /usr/local/bin; then
             echo "Error: Failed to install Grype. Please install it manually."
             exit 1
         fi
