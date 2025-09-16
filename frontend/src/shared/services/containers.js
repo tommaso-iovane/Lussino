@@ -107,22 +107,48 @@ export function getVulnerabilitySeverityClass(vulnerabilities) {
  * Initiate vulnerability scan for all containers or specific hostname
  * @param {string} [hostname] - Optional hostname to scan specific containers only
  * @returns {Promise<Object>} Scan initiation response
+ * @deprecated Scanning is now handled by distributed agents
  */
 export async function scanAllContainers(hostname = null) {
 	try {
 		const payload = hostname ? { hostname } : {};
 		const data = await post('/api/containers/scan-all', payload);
 		
-		if (data.error) {
-			toast.error(data.message || 'Failed to initiate scan');
-			throw new Error(data.message || 'Failed to initiate scan');
-		}
-		
-		toast.success(data.message || 'Vulnerability scan initiated');
+		toast.info(data.message || 'Scanning is now handled by agents running on each host');
 		return data;
 	} catch (error) {
-		console.error('Failed to initiate container scan:', error);
-		toast.error('Failed to initiate vulnerability scan');
+		console.error('Failed to contact scan endpoint:', error);
+		toast.error('Failed to contact scan endpoint');
+		throw error;
+	}
+}
+
+/**
+ * Delete a container and all its associated scan data
+ * @param {number} containerId - Container ID to delete
+ * @returns {Promise<Object>} Deletion response
+ */
+export async function deleteContainer(containerId) {
+	try {
+		const response = await fetch(`/api/containers/delete/${containerId}`, {
+			method: 'DELETE',
+			credentials: 'include',
+			headers: {
+				'Content-Type': 'application/json'
+			}
+		});
+		
+		if (!response.ok) {
+			const errorData = await response.json();
+			throw new Error(errorData.error || 'Failed to delete container');
+		}
+		
+		const data = await response.json();
+		toast.success(data.message || 'Container deleted successfully');
+		return data;
+	} catch (error) {
+		console.error('Failed to delete container:', error);
+		toast.error(error.message || 'Failed to delete container');
 		throw error;
 	}
 }

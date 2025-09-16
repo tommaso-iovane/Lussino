@@ -4,20 +4,12 @@ A lightweight and simple container vulnerability scanning platform that helps or
 
 ![dashboard](./images/image.png)
 
-## Key Highlights
-
-- **Zero-Dependency Agent**: Lightweight bash script requiring no installation or dependencies
-- **Single Container Deployment**: Entire application runs in one Docker container
-- **Minimal Footprint**: Easy deployment across any environment
-
 ## Features
 
 - **Container Discovery**: Automatic detection and inventory of containers across hosts
 - **Vulnerability Scanning**: Integration with Grype for comprehensive security analysis
 - **Risk Assessment**: Visual risk scoring (0-100) with color-coded severity indicators
-- **Dashboard Analytics**: Real-time statistics and vulnerability trends
-- **Dark/Light Theme**: Full theme support with system preference detection
-- **User Management**: Authentication with password change functionality
+- **Unified dashboard**: One dashboard to monitor all your hosts
 
 ## Deployment
 
@@ -31,33 +23,17 @@ services:
     image: tiovane/lussino:latest
     container_name: lussino
     ports:
-      - "3007:3000"
+      - "3000:3000"
     volumes:
       - ./data:/app/data
-    cap_add:
-      - SYS_ADMIN  # Required for internal vulnerability scanning
-      - DAC_OVERRIDE  # Required for Docker daemon operations
-    security_opt:
-      - apparmor:unconfined  # Allow fuse-overlayfs operations
     environment:
-      NODE_ENV: production
-      APP_URL: "http://localhost:3000"
-      # generate with openssl rand -hex 32
-      AGENT_TOKEN: "1234"
-      # Lussino will not save vulnerabilities with a risk % below IGNORE_RISK_BELOW
-      IGNORE_RISK_BELOW: 10
-      # Container scan cron job schedule
-      SCAN_CRON_STRING: "0 2 * * *"
-      # (Optional) Docker login info, get higher usage limit from dockerhub https://docs.docker.com/docker-hub/usage/
-      DOCKER_USERNAME: ""
-      DOCKER_TOKEN: ""
+      - NODE_ENV=production
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3000/healthz"]
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 40s
 ```
 
 Deploy with:
@@ -79,7 +55,7 @@ cd frontend && bun install && bun run dev
 
 ## Agent Deployment
 
-Deploy the scanning agent on any host with Docker - **no dependencies required** (except of course docker):
+Deploy the scanning agent on any host with Docker
 
 ### First-Time Setup
 

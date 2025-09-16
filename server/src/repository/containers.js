@@ -1,4 +1,5 @@
 import db from '../lib/db.js'
+import { saveScanResults } from './vulnerabilities.js'
 
 export function removeContainersByHostname(hostname) {
     if (!hostname) {
@@ -218,4 +219,101 @@ export function getContainerDetails(id) {
         createdAt: container.created_at,
         scans: scansWithDetails
     }
+}
+
+export function updateSingleContainer(hostname, containerData, scanData) {
+    if (!hostname || !containerData) {
+        throw new Error('Hostname and container data are required')
+    }
+
+    const { name, repository, tag, digest, imageId } = containerData
+
+    // Check if container already exists
+    const existingStmt = db.prepare(`
+        SELECT id FROM containers 
+        WHERE hostname = ? AND name = ?
+    `)
+    const existing = existingStmt.get(hostname, name)
+
+    let containerId
+    let updated = false
+
+    if (existing) {
+        // Update existing container
+        const updateStmt = db.prepare(`
+            UPDATE containers 
+            SET repository = ?, tag = ?, digest = ?, imageId = ?
+            WHERE id = ?
+        `)
+        updateStmt.run(repository, tag, digest, imageId, existing.id)
+        containerId = existing.id
+        updated = true
+    } else {
+        // Insert new container
+        const insertStmt = db.prepare(`
+            INSERT INTO containers (hostname, name, repository, tag, digest, imageId) 
+            VALUES (?, ?, ?, ?, ?, ?)
+        `)
+        const result = insertStmt.run(hostname, name, repository, tag, digest, imageId)
+        containerId = result.lastInsertRowid
+        updated = false
+    }
+
+    // Save scan results if provided
+    let vulnerabilitiesCount = 0
+    if (scanData && scanData.matches) {
+        // Delete existing scans for this container first
+        const deleteDetailsStmt = db.prepare(`
+            DELETE FROM vulnerability_details 
+            WHERE scan_id IN (
+                SELECT id FROM vuln_scans WHERE container_id = ?
+            )
+        `)
+        deleteDetailsStmt.run(containerId)
+
+        const deleteScansStmt = db.prepare('DELETE FROM vuln_scans WHERE container_id = ?')
+        deleteScansStmt.run(containerId)
+
+        // Save new scan results
+        saveScanResults(containerId, scanData)
+        vulnerabilitiesCount = scanData.matches?.length || 0
+    }
+
+    return {
+        containerId,
+        updated,
+        vulnerabilitiesCount
+    }
+}
+
+export function deleteContainer(containerId) {
+    if (!containerId) {
+        throw new Error('Container ID is required')
+    }
+
+    const transaction = db.transaction(() => {
+        // First, delete vulnerability details
+        const deleteDetailsStmt = db.prepare(`
+            DELETE FROM vulnerability_details 
+            WHERE scan_id IN (
+                SELECT id FROM vuln_scans WHERE container_id = ?
+            )
+        `)
+        deleteDetailsStmt.run(containerId)
+
+        // Delete vulnerability scans
+        const deleteScansStmt = db.prepare('DELETE FROM vuln_scans WHERE container_id = ?')
+        const scanResult = deleteScansStmt.run(containerId)
+
+        // Finally, delete the container
+        const deleteContainerStmt = db.prepare('DELETE FROM containers WHERE id = ?')
+        const containerResult = deleteContainerStmt.run(containerId)
+
+        return {
+            success: containerResult.changes > 0,
+            deletedScans: scanResult.changes
+        }
+    })
+
+    return transaction()
 }

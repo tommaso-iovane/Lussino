@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   lussino:
     image: tiovane/lussino:latest
@@ -8,24 +6,11 @@ services:
       - "3000:3000"
     volumes:
       - ./data:/app/data
-    cap_add:
-      - SYS_ADMIN  # Required for fuse-overlayfs
-      - DAC_OVERRIDE  # Required for Docker daemon operations
-    security_opt:
-      - apparmor:unconfined  # Allow fuse-overlayfs operations
     environment:
       - NODE_ENV=production
-      # Docker Hub credentials for pulling private images (optional)
-      - DOCKER_USERNAME=${DOCKER_USERNAME}
-      - DOCKER_TOKEN=${DOCKER_TOKEN}
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3000/healthz"]
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 40s  # Give more time for Docker daemon to start
-
-volumes:
-  data:
-    driver: local

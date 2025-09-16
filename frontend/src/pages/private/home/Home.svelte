@@ -3,7 +3,7 @@
 	import { fade, fly } from 'svelte/transition';
 	import { quintOut } from 'svelte/easing';
 	import { TableHandler, Datatable, ThSort, ThFilter } from '@vincjo/datatables';
-	import { getContainers, flattenContainers, formatVulnerabilities, getVulnerabilitySeverityClass, scanAllContainers } from '../../../shared/services/containers.js';
+	import { getContainers, flattenContainers, formatVulnerabilities, getVulnerabilitySeverityClass, deleteContainer } from '../../../shared/services/containers.js';
 	import Loader from '../../../shared/components/Loader.svelte';
 	import ThemeToggle from '../../../shared/components/ThemeToggle.svelte';
 	import { toast } from '../../../shared/services/toast.js';
@@ -18,7 +18,8 @@
 	let hostnameFilter = $state('');
 	let totalContainers = $state(0);
 	let pollInterval = $state(null);
-	let isScanning = $state(false);
+	let containerToDelete = $state(null);
+	let showDeleteDialog = $state(false);
 
 	// Create reactive table handler
 	$effect(() => {
@@ -83,22 +84,39 @@
 	}
 
 	/**
-	 * Initiate vulnerability scan for all containers
+	 * Show delete confirmation dialog
 	 */
-	async function handleScanAll() {
+	function confirmDelete(container) {
+		containerToDelete = container;
+		showDeleteDialog = true;
+	}
+
+	/**
+	 * Handle container deletion
+	 */
+	async function handleDelete() {
+		if (!containerToDelete) return;
+		
 		try {
-			isScanning = true;
-			await scanAllContainers();
+			await deleteContainer(containerToDelete.id);
 			
-			// Refresh data after a short delay to allow scan to start
-			setTimeout(() => {
-				loadContainers(false);
-			}, 2000);
+			// Refresh the containers list
+			await loadContainers(false);
+			
+			// Close dialog
+			showDeleteDialog = false;
+			containerToDelete = null;
 		} catch (error) {
-			console.error('Failed to initiate scan:', error);
-		} finally {
-			isScanning = false;
+			console.error('Failed to delete container:', error);
 		}
+	}
+
+	/**
+	 * Cancel delete operation
+	 */
+	function cancelDelete() {
+		showDeleteDialog = false;
+		containerToDelete = null;
 	}
 
 	/**
@@ -188,24 +206,12 @@
 				</div>
 			</div>
 			<div class="mt-4 sm:mt-0 flex items-center space-x-3">
-				<button
-					onclick={handleScanAll}
-					disabled={isScanning}
-					class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-offset-gray-900 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
-				>
-					{#if isScanning}
-						<svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-							<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-							<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-						</svg>
-						Scanning...
-					{:else}
-						<svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
-						</svg>
-						Scan All
-					{/if}
-				</button>
+				<div class="inline-flex items-center px-4 py-2 border border-blue-200 dark:border-blue-800 shadow-sm text-sm font-medium rounded-md text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-900/20">
+					<svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+					</svg>
+					Scanning handled by agents
+				</div>
 				<button
 					onclick={() => navigate('/profile')}
 					class="inline-flex items-center px-3 py-2 border border-gray-300 dark:border-gray-600 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-offset-gray-900 transition-colors duration-200"
@@ -367,18 +373,16 @@
 											<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
 												Last Scan
 											</th>
+											<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+												Actions
+											</th>
 										</tr>
 									</thead>
 									<tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
 										{#each table.rows as container (container.id)}
-											<tr 
-												class="bg-white dark:bg-gray-800 hover:!bg-gray-50 dark:hover:!bg-gray-700 transition-colors duration-150 cursor-pointer"
-												onclick={() => navigate(`/container/${container.id}`)}
-												role="button"
-												tabindex="0"
-												onkeydown={(e) => e.key === 'Enter' && navigate(`/container/${container.id}`)}
-											>
-												<td class="px-6 py-4 whitespace-nowrap">
+											<tr class="bg-white dark:bg-gray-800 hover:!bg-gray-50 dark:hover:!bg-gray-700 transition-colors duration-150">
+												<td class="px-6 py-4 whitespace-nowrap cursor-pointer" 
+													onclick={() => navigate(`/container/${container.id}`)}>
 													<div class="flex items-center">
 														<div class="flex-shrink-0 w-8 h-8">
 															<div class="w-8 h-8 bg-primary-100 dark:bg-primary-900/30 rounded-lg flex items-center justify-center">
@@ -393,25 +397,30 @@
 														</div>
 													</div>
 												</td>
-												<td class="px-6 py-4 whitespace-nowrap">
+												<td class="px-6 py-4 whitespace-nowrap cursor-pointer" 
+													onclick={() => navigate(`/container/${container.id}`)}>
 													<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300">
 														{container.hostname}
 													</span>
 												</td>
-												<td class="px-6 py-4 whitespace-nowrap">
+												<td class="px-6 py-4 whitespace-nowrap cursor-pointer" 
+													onclick={() => navigate(`/container/${container.id}`)}>
 													<div class="text-sm text-gray-900 dark:text-gray-100">{container.repository}</div>
 												</td>
-												<td class="px-6 py-4 whitespace-nowrap">
+												<td class="px-6 py-4 whitespace-nowrap cursor-pointer" 
+													onclick={() => navigate(`/container/${container.id}`)}>
 													<span class="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200">
 														{container.tag}
 													</span>
 												</td>
-												<td class="px-6 py-4 whitespace-nowrap">
+												<td class="px-6 py-4 whitespace-nowrap cursor-pointer" 
+													onclick={() => navigate(`/container/${container.id}`)}>
 													<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {getStatusBadgeClass(container.vulnerabilities)}">
 														{formatVulnerabilities(container.vulnerabilities)}
 													</span>
 												</td>
-												<td class="px-6 py-4 whitespace-nowrap">
+												<td class="px-6 py-4 whitespace-nowrap cursor-pointer" 
+													onclick={() => navigate(`/container/${container.id}`)}>
 													{#if container.hasUpdate}
 														<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-300">
 															<svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -425,8 +434,23 @@
 														</span>
 													{/if}
 												</td>
-												<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+												<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400 cursor-pointer" 
+													onclick={() => navigate(`/container/${container.id}`)}>
 													{formatDate(container.vulnerabilities?.lastScanAt)}
+												</td>
+												<td class="px-6 py-4 whitespace-nowrap">
+													<button
+														onclick={(e) => {
+															e.stopPropagation();
+															confirmDelete(container);
+														}}
+														class="text-red-600 dark:text-red-400 hover:text-red-900 dark:hover:text-red-300 transition-colors p-1 rounded hover:bg-red-50 dark:hover:bg-red-900/20"
+														title="Delete container"
+													>
+														<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+															<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+														</svg>
+													</button>
 												</td>
 											</tr>
 										{/each}
@@ -448,3 +472,78 @@
 		</div>
 	</div>
 </div>
+
+<!-- Delete Confirmation Dialog -->
+{#if showDeleteDialog && containerToDelete}
+	<div class="fixed inset-0 bg-gray-600 bg-opacity-50 dark:bg-gray-900 dark:bg-opacity-75 overflow-y-auto h-full w-full z-50 flex items-center justify-center p-4" 
+		 onclick={cancelDelete} 
+		 in:fade={{ duration: 200 }}>
+		<div class="relative bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full" 
+			 onclick={(e) => e.stopPropagation()}
+			 in:fly={{ y: 20, duration: 300 }}>
+			
+			<!-- Dialog Header -->
+			<div class="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+				<div class="flex items-center gap-3">
+					<div class="flex-shrink-0">
+						<div class="w-10 h-10 bg-red-100 dark:bg-red-900/30 rounded-lg flex items-center justify-center">
+							<svg class="w-6 h-6 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+							</svg>
+						</div>
+					</div>
+					<div>
+						<h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100">Delete Container</h3>
+						<p class="text-sm text-gray-600 dark:text-gray-400">This action cannot be undone</p>
+					</div>
+				</div>
+				<button
+					onclick={cancelDelete}
+					class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
+				>
+					<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+					</svg>
+				</button>
+			</div>
+
+			<!-- Dialog Content -->
+			<div class="p-6">
+				<p class="text-sm text-gray-700 dark:text-gray-300 mb-4">
+					Are you sure you want to delete the container <strong>{containerToDelete.name}</strong>? 
+					This will permanently remove the container and all its vulnerability scan data.
+				</p>
+				<div class="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-md p-3">
+					<div class="flex">
+						<div class="flex-shrink-0">
+							<svg class="h-5 w-5 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"/>
+							</svg>
+						</div>
+						<div class="ml-3">
+							<p class="text-sm text-yellow-700 dark:text-yellow-300">
+								<strong>Warning:</strong> This will delete all vulnerability scans and historical data for this container.
+							</p>
+						</div>
+					</div>
+				</div>
+			</div>
+
+			<!-- Dialog Footer -->
+			<div class="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50">
+				<button
+					onclick={cancelDelete}
+					class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors"
+				>
+					Cancel
+				</button>
+				<button
+					onclick={handleDelete}
+					class="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-md transition-colors"
+				>
+					Delete Container
+				</button>
+			</div>
+		</div>
+	</div>
+{/if}
